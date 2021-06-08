@@ -1079,7 +1079,10 @@ namespace sol_1_disk_manager
             if (int.TryParse(viewstyle, out result))
             {
                 if (result >= 0 && result <= 4)
+                {
                     listView1.View = (View)result;
+                    refreshIconView();
+                }
             }
 
             if (filename.Trim() != "")
