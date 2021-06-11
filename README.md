@@ -18,7 +18,7 @@ File example.dsk is an example of disk image.
 
 -----BEGIN LICENSE NOTICE----- 
 
-Sol-1 Simu for HomebrewCPU Minicomputer System
+Sol-1 Disk Manager for Sol-1 HomebrewCPU Minicomputer System
 
 Copyright (C) 2021  Augusto Baffa, (sol-1.baffasoft.com.br)
 
