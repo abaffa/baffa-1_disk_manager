@@ -24,15 +24,26 @@ namespace sol_1_disk_manager
             openFileToolStripMenuItem.Enabled = false;
             deleteToolStripMenuItem1.Enabled = false;
 
+            IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
 
             listView1.Columns.Add("Title");
             listView1.Columns.Add("Attributes");
             listView1.Columns.Add("Size");
             listView1.Columns.Add("Creation Date");
 
+            try
+            {
+                listView1.Columns[0].Width = int.Parse(ini.IniReadValue("general", "col_0"));
+                listView1.Columns[1].Width = int.Parse(ini.IniReadValue("general", "col_1"));
+                listView1.Columns[2].Width = int.Parse(ini.IniReadValue("general", "col_2"));
+                listView1.Columns[3].Width = int.Parse(ini.IniReadValue("general", "col_3"));
+            }
+            catch { }
+
         }
 
         String current_filename = "";
+        bool isRenaming = false;
 
         const int FST_ENTRY_SIZE = 32;
         const int FST_FILES_PER_SECT = 512 / FST_ENTRY_SIZE;
@@ -186,7 +197,7 @@ namespace sol_1_disk_manager
                     ListViewItem lvi = new ListViewItem();
                     lvi.ImageIndex = (disk_buffer[d + 24] & 0b00000001) != 0x00 ? 0 : 2;
                     lvi.Text = title;
-                    lvi.Tag = disk_buffer[d + 25];
+                    lvi.Tag = (0x0100 * disk_buffer[d + 26]) + disk_buffer[d + 25];
                     lvi.SubItems.Add(new ListViewItem.ListViewSubItem() { Name = "Attributes", Text = attributes });
                     lvi.SubItems.Add(new ListViewItem.ListViewSubItem() { Name = "Size", Text = size });
                     lvi.SubItems.Add(new ListViewItem.ListViewSubItem() { Name = "Creation Date", Text = creationDate });
@@ -197,10 +208,11 @@ namespace sol_1_disk_manager
                     listView1.Items.Add(lvi);
 
 
-
+                    /*
                     index++; //cmd_ls_next:
                     if (index == FST_FILES_PER_DIR)
                         return;
+                    */
                 }
 
                 index++; //cmd_ls_next:
@@ -255,8 +267,19 @@ namespace sol_1_disk_manager
                             index++;
                         }
 
+                        int start_address = 0;
+                        try
+                        {
+                            IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                            String hex_start = ini.IniReadValue("address_start", "disk_buffer");
+                            start_address = Convert.ToInt32(hex_start, 16);
+                        }
+                        catch
+                        { }
+
                         frmEditFile frmedit = new frmEditFile();
                         frmedit.setTitle("File: " + listView1.SelectedItems[0].Text);
+                        frmedit.Start_Address = start_address;
                         frmedit.setText(file);
                         frmedit.ShowDialog(this);
 
@@ -270,26 +293,28 @@ namespace sol_1_disk_manager
 
                                 int bb = parent_lba * 512 + find_file(listView1.SelectedItems[0].Text, parent_lba);
 
-                                if (frmedit.FileType == frmEditFile.EditorType.Binary)
-                                {
-                                    Byte[] filearray = StringToByteArray(frmedit.getText());
-                                    byte[] bytesize = BitConverter.GetBytes(filearray.Length);
-                                    fileData[bb + 27] = bytesize[0];
-                                    fileData[bb + 28] = bytesize[1];
+                                //if (frmedit.FileType == frmEditFile.EditorType.Binary)
+                                //{
+                                Byte[] filearray = StringToByteArray(frmedit.getText());
+                                byte[] bytesize = BitConverter.GetBytes(filearray.Length);
+                                fileData[bb + 27] = bytesize[0];
+                                fileData[bb + 28] = bytesize[1];
 
-                                    for (int i = 0; i < filearray.Length; i++)
-                                        fileData[d + i] = filearray[i];
-                                }
-                                else if (frmedit.FileType == frmEditFile.EditorType.Text)
-                                {
-                                    String text = frmedit.getText();
-                                    byte[] bytesize = BitConverter.GetBytes(text.Length);
-                                    fileData[bb + 27] = bytesize[0];
-                                    fileData[bb + 28] = bytesize[1];
+                                for (int i = 0; i < filearray.Length; i++)
+                                    fileData[d + i] = filearray[i];
+                                /*
+                            }
+                            else if (frmedit.FileType == frmEditFile.EditorType.Text)
+                            {
+                                String text = frmedit.getText();
+                                byte[] bytesize = BitConverter.GetBytes(text.Length);
+                                fileData[bb + 27] = bytesize[0];
+                                fileData[bb + 28] = bytesize[1];
 
-                                    for (int i = 0; i < text.Length; i++)
-                                        fileData[d + i] = Convert.ToByte(text[i]);
-                                }
+                                for (int i = 0; i < text.Length; i++)
+                                    fileData[d + i] = Convert.ToByte(text[i]);
+                            }
+                            */
                                 cmd_ls();
                             }
                             else
@@ -370,7 +395,8 @@ namespace sol_1_disk_manager
                 fileData[d + istr] = Convert.ToByte(str[istr]);
             fileData[d + istr] = 0x00;
             fileData[d + 24] = 0b00000111; //  attributes
-            fileData[d + 25] = Convert.ToByte(lbaCandidate); //LBA
+            fileData[d + 25] = Convert.ToByte(lbaCandidate % 0x0100); //LBA
+            fileData[d + 26] = Convert.ToByte(lbaCandidate / 0x0100); //LBA
             fileData[d + 27] = 0; //SIZE
             fileData[d + 28] = 0;//SIZE
             fileData[d + 29] = ConvertIntHexToByte(DateTime.Today.Day); //day
@@ -534,7 +560,8 @@ namespace sol_1_disk_manager
                 fileData[d + istr] = Convert.ToByte(str[istr]);
             fileData[d + istr] = 0x00;
             fileData[d + 24] = 0b00001110; //  attributes
-            fileData[d + 25] = Convert.ToByte(lbaCandidate); //LBA
+            fileData[d + 25] = Convert.ToByte(lbaCandidate % 0x0100); //LBA
+            fileData[d + 26] = Convert.ToByte(lbaCandidate / 0x0100); //LBA
             fileData[d + 27] = bytesize[0];
             fileData[d + 28] = bytesize[1];
             fileData[d + 29] = ConvertIntHexToByte(DateTime.Today.Day); //day
@@ -588,7 +615,8 @@ namespace sol_1_disk_manager
                 fileData[d + istr] = Convert.ToByte(str[istr]);
             fileData[d + istr] = 0x00;
             fileData[d + 24] = 0b00001110; //  attributes
-            fileData[d + 25] = Convert.ToByte(lbaCandidate); //LBA
+            fileData[d + 25] = Convert.ToByte(lbaCandidate % 0x0100); //LBA
+            fileData[d + 26] = Convert.ToByte(lbaCandidate / 0x0100); //LBA
             fileData[d + 27] = bytesize[0];
             fileData[d + 28] = bytesize[1];
             fileData[d + 29] = ConvertIntHexToByte(DateTime.Today.Day); //day
@@ -642,7 +670,8 @@ namespace sol_1_disk_manager
                 fileData[d + istr] = Convert.ToByte(str[istr]);
             fileData[d + istr] = 0x00;
             fileData[d + 24] = 0b00001110; //  attributes
-            fileData[d + 25] = Convert.ToByte(lbaCandidate); //LBA
+            fileData[d + 25] = Convert.ToByte(lbaCandidate % 0x0100); //LBA
+            fileData[d + 26] = Convert.ToByte(lbaCandidate / 0x0100); //LBA
             fileData[d + 27] = bytesize[0];
             fileData[d + 28] = bytesize[1];
             fileData[d + 29] = ConvertIntHexToByte(DateTime.Today.Day); //day
@@ -656,8 +685,11 @@ namespace sol_1_disk_manager
                 fileData[filestart + i] = filearray[i];
         }
 
-        private void listView1_KeyUp(object sender, KeyEventArgs e)
+
+        private void listView1_KeyDown(object sender, KeyEventArgs e)
         {
+            if (isRenaming) return;
+
             if (e.KeyCode == Keys.Delete)
             {
                 if (listView1.SelectedItems.Count == 1)
@@ -673,33 +705,62 @@ namespace sol_1_disk_manager
             {
                 if (listView1.SelectedItems.Count == 1)
                 {
+                    isRenaming = true;
                     listView1.SelectedItems[0].BeginEdit();
                 }
             }
 
+            else if (e.KeyCode == Keys.Enter)
+            {
+                listView1_DoubleClick(null, null);
+            }
         }
 
         private void listView1_AfterLabelEdit(object sender, LabelEditEventArgs e)
         {
             if (e.Label != null)
             {
-                string title = listView1.Items[e.Item].Text;
-                int lba = Convert.ToUInt16(listView1.Items[e.Item].Tag);
-                int parent_lba = fileData[lba * 512 + 0x40];
-                parent_lba++;
 
-                int b = parent_lba * 512 + find_file(title, parent_lba);
-                int d = lba * 512;
-                int i = 0;
-                for (i = 0; i < e.Label.Length; i++)
+                if (listView1.SelectedItems[0].SubItems.ContainsKey("Type"))
                 {
-                    fileData[b + i] = Convert.ToByte(e.Label[i]);
-                    fileData[d + i] = Convert.ToByte(e.Label[i]);
-                }
-                fileData[b + i] = 0x00;
-                fileData[d + i] = 0x00;
+                    if (listView1.SelectedItems[0].SubItems["Type"].Text == "Directory")
+                    {
+                        string title = listView1.Items[e.Item].Text;
+                        int lba = Convert.ToUInt16(listView1.Items[e.Item].Tag);
+                        int parent_lba_sector = (lba * 512) + 0x40;
+                        int parent_lba = fileData[parent_lba_sector];
+                        parent_lba++;
 
+                        int b = parent_lba * 512 + find_file(title, parent_lba);
+                        int d = lba * 512;
+                        int i = 0;
+                        for (i = 0; i < e.Label.Length && i < 0x17; i++)
+                        {
+                            fileData[b + i] = Convert.ToByte(e.Label[i]);
+                            fileData[d + i] = Convert.ToByte(e.Label[i]);
+                        }
+                        fileData[b + i] = 0x00;
+                        fileData[d + i] = 0x00;
+                    }
+                    else if (listView1.SelectedItems[0].SubItems["Type"].Text == "File")
+                    {
+                        string title = listView1.Items[e.Item].Text;
+
+                        int parent_lba = current_dir_LBA;
+                        parent_lba++;
+
+                        int b = parent_lba * 512 + find_file(title, parent_lba);
+                        int i = 0;
+                        for (i = 0; i < e.Label.Length && i < 0x17; i++)
+                        {
+                            fileData[b + i] = Convert.ToByte(e.Label[i]);
+                        }
+                        fileData[b + i] = 0x00;
+                    }
+                }
             }
+
+            isRenaming = false;
         }
 
         private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
@@ -933,10 +994,19 @@ namespace sol_1_disk_manager
             if (ShowInputDialog(ref str, "File Name", this) == DialogResult.OK)
                 if (str.Trim() != "")
                 {
-
+                    int start_address = 0;
+                    try
+                    {
+                        IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                        String hex_start = ini.IniReadValue("address_start", "disk_buffer");
+                        start_address = Convert.ToInt32(hex_start, 16);
+                    }
+                    catch
+                    { }
 
                     frmEditFile frmedit = new frmEditFile();
                     frmedit.setTitle("New Text File: " + str);
+                    frmedit.Start_Address = start_address;
                     frmedit.ShowUndo = false;
                     frmedit.ShowEditorType = false;
                     frmedit.setText("");
@@ -961,9 +1031,19 @@ namespace sol_1_disk_manager
                 if (str.Trim() != "")
                 {
 
+                    int start_address = 0;
+                    try
+                    {
+                        IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                        String hex_start = ini.IniReadValue("address_start", "disk_buffer");
+                        start_address = Convert.ToInt32(hex_start, 16);
+                    }
+                    catch
+                    { }
 
                     frmEditFile frmedit = new frmEditFile();
                     frmedit.setTitle("New Binary File: " + str);
+                    frmedit.Start_Address = start_address;
                     frmedit.ShowUndo = false;
                     frmedit.ShowEditorType = false;
                     frmedit.setText("");
@@ -988,9 +1068,19 @@ namespace sol_1_disk_manager
                 if (str.Trim() != "")
                 {
 
+                    int start_address = 0;
+                    try
+                    {
+                        IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                        String hex_start = ini.IniReadValue("address_start", "disk_buffer");
+                        start_address = Convert.ToInt32(hex_start, 16);
+                    }
+                    catch
+                    { }
 
                     frmEditFile frmedit = new frmEditFile();
                     frmedit.setTitle("New Text File: " + str);
+                    frmedit.Start_Address = start_address;
                     frmedit.ShowUndo = false;
                     frmedit.ShowEditorType = false;
                     frmedit.setText("");
@@ -1014,10 +1104,19 @@ namespace sol_1_disk_manager
             if (ShowInputDialog(ref str, "File Binary Name", this) == DialogResult.OK)
                 if (str.Trim() != "")
                 {
-
+                    int start_address = 0;
+                    try
+                    {
+                        IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                        String hex_start = ini.IniReadValue("address_start", "disk_buffer");
+                        start_address = Convert.ToInt32(hex_start, 16);
+                    }
+                    catch
+                    { }
 
                     frmEditFile frmedit = new frmEditFile();
                     frmedit.setTitle("New File: " + str);
+                    frmedit.Start_Address = start_address;
                     frmedit.ShowUndo = false;
                     frmedit.ShowEditorType = false;
                     frmedit.setText("");
@@ -1124,6 +1223,106 @@ namespace sol_1_disk_manager
 
                     cmd_ls();
                 }
+        }
+
+        private void editBootToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            String file = "";
+
+            for (int i = 0; i < 0x200; i++)
+                file += fileData[i].ToString("X2");
+
+            int start_address = 0;
+            try
+            {
+                IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                String hex_start = ini.IniReadValue("address_start", "boot_origin");
+                start_address = Convert.ToInt32(hex_start, 16);
+            }
+            catch
+            { }
+
+            frmEditFile frmedit = new frmEditFile();
+            frmedit.setTitle("Edit Boot");
+            frmedit.Start_Address = start_address;
+            frmedit.setText(file);
+            frmedit.ShowEditorType = false;
+            frmedit.ShowDialog(this);
+
+            if (file != frmedit.getText())
+            {
+                DialogResult dialogResult = MessageBox.Show("Confirm Edit of the \"Boot Sector\"?", "Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dialogResult == DialogResult.Yes)
+                {
+                    if (frmedit.FileType == frmEditFile.EditorType.Binary)
+                    {
+                        Byte[] filearray = StringToByteArray(frmedit.getText());
+
+                        int i = 0;
+                        for (; i < filearray.Length && i < 0x200; i++)
+                            fileData[i] = filearray[i];
+
+                        for (; i < 0x200; i++)
+                            fileData[i] = 0x00;
+                    }
+                }
+            }
+        }
+
+        private void editKernelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            String file = "";
+
+            for (int i = 0x200; i < 0x4000; i++)
+                file += fileData[i].ToString("X2");
+
+            int start_address = 0;
+            try
+            {
+                IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+                String hex_start = ini.IniReadValue("address_start", "kernel_origin");
+                start_address = Convert.ToInt32(hex_start, 16);
+            }
+            catch
+            { }
+
+            frmEditFile frmedit = new frmEditFile();
+            frmedit.setTitle("Edit Kernel");
+            frmedit.Start_Address = start_address;
+            frmedit.setText(file);
+            frmedit.ShowEditorType = false;
+            frmedit.ShowDialog(this);
+
+            if (file != frmedit.getText())
+            {
+                DialogResult dialogResult = MessageBox.Show("Confirm Edit of the \"Kernel Sector\"?", "Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dialogResult == DialogResult.Yes)
+                {
+                    if (frmedit.FileType == frmEditFile.EditorType.Binary)
+                    {
+                        Byte[] filearray = StringToByteArray(frmedit.getText());
+
+                        int i = 0;
+                        for (; i < filearray.Length && (i + 0x200) < 0x4000; i++)
+                            fileData[i + 0x200] = filearray[i];
+
+                        for (; i < 0x4000; i++)
+                            fileData[i + 0x200] = 0x00;
+                    }
+                }
+            }
+        }
+
+        private void listView1_ColumnWidthChanged(object sender, ColumnWidthChangedEventArgs e)
+        {
+            IniFile ini = new IniFile(System.Environment.CurrentDirectory + "\\" + "config.ini");
+            ini.IniWriteValue("general", "col_" + e.ColumnIndex.ToString(), listView1.Columns[e.ColumnIndex].Width.ToString());
+        }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            listView1_DoubleClick(null, null);
         }
     }
 }
