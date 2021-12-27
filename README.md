@@ -1,12 +1,10 @@
-# Sol-1 Disk Manager for Sol-1 HomebrewCPU Minicomputer Emulator
+# Baffa-1 Disk Manager for Baffa-1 HomebrewCPU Minicomputer Emulator
 
-This is a disk manager for Sol-1 HomebrewCPU Minicomputer - A complete CPU and Minicomputer built from scratch in 74HC logic, created by Paulo de Tarco Constantino Junior (http://sol-1.org). Sol-1 project is inspired by [Bill Buzbee's work](http://homebrewcpu.com) on the [Magic-1 Minicomputer](http://www.magic-1.org/)
+This is a disk manager for Baffa-1 HomebrewCPU Minicomputer - a CPU and Minicomputer made from 74-Series Logic and based on Sol-1 Architecture proposed by Paulo de Tarco Constantino Junior (http://sol-1.org).
 
-The original computer softwares (bios, kernel, sample assembly language programs, ...) are available at https://github.com/abaffa/SOL1_MiniComputer.
+I've written an emulator for software testing that is running at http://baffa-1.baffasoft.com.br.
 
-I've written an emulator for software testing that is running at http://sol-1.baffasoft.com.br.
-
-The emulator software is available at https://github.com/abaffa/sol-1_emulator.
+The emulator software is available at https://github.com/abaffa/baffa-1_emulator.
 
 File example.dsk is an example of disk image.
 
@@ -18,9 +16,9 @@ File example.dsk is an example of disk image.
 
 -----BEGIN LICENSE NOTICE----- 
 
-Sol-1 Disk Manager for Sol-1 HomebrewCPU Minicomputer System
+Baffa-1 Disk Manager for Baffa-1 HomebrewCPU Minicomputer System
 
-Copyright (C) 2021  Augusto Baffa, (sol-1.baffasoft.com.br)
+Copyright (C) 2021  Augusto Baffa, (baffa-1.baffasoft.com.br)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
