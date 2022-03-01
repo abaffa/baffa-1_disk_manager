@@ -1,4 +1,4 @@
-# Baffa-1 Disk Manager for Baffa-1 HomebrewCPU Minicomputer Emulator
+# Baffa-1 Disk Manager for Baffa-1 HomebrewCPU Minicomputer Emulator [![Hackaday.io](https://img.shields.io/badge/Hackaday.io--blue.svg)](https://hackaday.io/project/183265-baffa-1-homebrewcpu-minicomputer)
 
 This is a disk manager for Baffa-1 HomebrewCPU Minicomputer - a CPU and Minicomputer made from 74-Series Logic and based on Sol-1 Architecture proposed by Paulo de Tarco Constantino Junior (http://sol-1.org).
 
