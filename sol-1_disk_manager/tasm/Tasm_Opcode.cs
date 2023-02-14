@@ -31,8 +31,8 @@ namespace sol_1_disk_manager.tasm
         {
             String line;
             Dictionary<String, Tasm_Opcode> opcode_list = new Dictionary<string, Tasm_Opcode>();
-            if (!Directory.Exists(System.Environment.CurrentDirectory + "\\tasm"))
-                Directory.CreateDirectory(System.Environment.CurrentDirectory + "\\tasm");
+            if (!System.IO.Directory.Exists(System.Environment.CurrentDirectory + "\\tasm"))
+                System.IO.Directory.CreateDirectory(System.Environment.CurrentDirectory + "\\tasm");
 
             try
             {
